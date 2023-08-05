@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN" color-mode="light">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="keywords" content="zjlian,c++,linux,程序员,博客,笔记" />
+  <meta name="author" content="zjlian" />
+  <meta name="description" content="" />
+  
+  
+  <title>
+    
+      toy-redis 开发日记：支持自定义内容输出的断言宏 
+      
+      
+      |
+    
+     zjlian&#39;s blog
+  </title>
+
+  
+    <link rel="apple-touch-icon" href="/images/favicon.gif">
+    <link rel="icon" href="/images/favicon.gif">
+  
+
+  <!-- Raleway-Font -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+  <!-- hexo site css -->
+  
+<link rel="stylesheet" href="/css/color-scheme.css">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1886449_67xjft27j1l.css">
+<link rel="stylesheet" href="/css/github-markdown.css">
+<link rel="stylesheet" href="/css/highlight.css">
+<link rel="stylesheet" href="/css/comments.css">
+
+  <!-- 代码块风格 -->
+  
+
+  <!-- jquery3.3.1 -->
+  
+    <script defer type="text/javascript" src="/plugins/jquery.min.js"></script>
+  
+
+  <!-- fancybox -->
+  
+    <link href="/plugins/jquery.fancybox.min.css" rel="stylesheet">
+    <script defer type="text/javascript" src="/plugins/jquery.fancybox.min.js"></script>
+  
+  
+<script src="/js/fancybox.js"></script>
+
+
+  
+
+  <script>
+    var html = document.documentElement
+    const colorMode = localStorage.getItem('color-mode')
+    if (colorMode) {
+      document.documentElement.setAttribute('color-mode', colorMode)
+    }
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7242444166481573"
+  crossorigin="anonymous"></script>
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?a4f2cf6dfa7aa929c8a0a8bf7d62d2bb";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+    
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+  <body>
+    <div id="app">
+      <div class="header">
+  <div class="avatar">
+    <a href="/">
+      <!-- 头像取消懒加载，添加no-lazy -->
+      
+        <img no-lazy src="/images/avatar.gif" alt="">
+      
+    </a>
+    <div class="nickname"><a href="/">zjlian</a></div>
+  </div>
+  <div class="navbar">
+    <ul>
+      
+        <li class="nav-item" data-path="/">
+          <a href="/">首页</a>
+        </li>
+      
+        <li class="nav-item" data-path="/archives/">
+          <a href="/archives/">全部文章</a>
+        </li>
+      
+        <li class="nav-item" data-path="/categories/">
+          <a href="/categories/">分类</a>
+        </li>
+      
+        <li class="nav-item" data-path="/about/">
+          <a href="/about/">关于我</a>
+        </li>
+      
+    </ul>
+  </div>
+</div>
+
+
+<script src="/js/activeNav.js"></script>
+
+
+
+      <div class="flex-container">
+        <!-- 文章详情页，展示文章具体内容，url形式：https://yoursite/文章标题/ -->
+<!-- 同时为「标签tag」，「朋友friend」，「分类categories」，「关于about」页面的承载页面，具体展示取决于page.type -->
+
+
+  <!-- LaTex Display -->
+
+  
+    <script async type="text/javascript" src="/plugins/mathjax/tex-chtml.js"></script>
+  
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    }
+  </script>
+
+
+
+
+
+  <!-- clipboard -->
+
+  
+    <script async type="text/javascript" src="/plugins/clipboard.min.js"></script>
+  
+  
+<script src="/js/codeCopy.js"></script>
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  <!-- 文章内容页 url形式：https://yoursite/文章标题/ -->
+  <div class="container post-details" id="post-details">
+    <div class="post-content">
+      <div class="post-title">toy-redis 开发日记：支持自定义内容输出的断言宏</div>
+      <div class="post-attach">
+        <span class="post-pubtime">
+          <i class="iconfont icon-updatetime" title="更新时间"></i>
+          2022-07-31 04:42:36
+        </span>
+        
+              <span class="post-categories">
+                <i class="iconfont icon-bookmark" title="分类"></i>
+                
+                <span class="span--category">
+                  <a href="/categories/cpp/" title="cpp">
+                    <b>#</b> cpp
+                  </a>
+                </span>
+                
+                <span class="span--category">
+                  <a href="/categories/%E9%80%A0%E8%BD%AE%E5%AD%90/" title="造轮子">
+                    <b>#</b> 造轮子
+                  </a>
+                </span>
+                
+              </span>
+          
+      </div>
+      <div class="markdown-body">
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>本文将介绍 toy-redis 内使用的断言工具 <code>ASSERT_MSG</code>，这是一个支持 <code>std::cout</code> 风格输出打印的断言宏，极大的方便了断言失败时输出必要的调试信息到终端上。   </p>
+<p>toy-redis 项目地址: <a target="_blank" rel="noopener" href="https://github.com/TIDC/toy-redis">https://github.com/TIDC/toy-redis</a><br>ASSERT_MSG 源码: <a target="_blank" rel="noopener" href="https://github.com/TIDC/toy-redis/blob/master/base/checker.hpp">https://github.com/TIDC/toy-redis/blob/master/base/checker.hpp</a></p>
+<h2 id="目的和设想"><a href="#目的和设想" class="headerlink" title="目的和设想"></a>目的和设想</h2><p>c 语言标准库 &lt;assert.h&gt; 内提供的宏 <code>assert</code> 功能非常残疾，断言失败后只能简单把文件和行号输出到终端上。类似系统函数错误后，只能通过 <code>errno</code> 获取具体的错误码，还有错误码对应的描述，这些都无法在 <code>assert</code> 断言错误后体现出来。</p>
+<p>那怎么办呢？</p>
+<p>我想要的就是一个可以在断言失败后，输出条件、文件名、行号和自定义内容的东西。想象中的用法是这样的：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ASSERT_MSG</span>(some_condition) </span><br><span class="line">    &lt;&lt; <span class="string">&quot;XXX 条件的需要满足 XXX，当前的值为 &quot;</span> &lt;&lt; XXX;</span><br></pre></td></tr></table></figure>
+<p>断言失败后可以输出类似这样的信息:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[!!!!!! ASSERT &#x27;some_condition&#x27; ERROR !!!!!!]</span><br><span class="line">location: /xx/main.cpp:21 main</span><br><span class="line">what: XXX 条件的需要满足 XXX，当前的值为 ...</span><br></pre></td></tr></table></figure>
+
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p>目前第一版的实现先不考虑 Release 模式下的开销问题，这个有的是办法做到零开销。</p>
+<p>回看一下断言宏 <code>ASSERT_MSG</code> 的用法。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">ASSERT_MSG</span>(some_condition) </span><br><span class="line">    &lt;&lt; <span class="string">&quot;XXX 条件的需要满足 XXX，当前的值为 &quot;</span> &lt;&lt; XXX;</span><br></pre></td></tr></table></figure>
+<p>与普通的断言宏 <code>assert</code> 类似，如果条件为真那就啥都不干，条件为假就输出日志并提前结束程序。<br><code>assert</code> 宏展开后是一个三元表达式，当条件为真时返回一个无意义的 void 值，条件为假时调用一个返回值为 void 的日志输出函数。</p>
+<p><code>ASSERT_MSG</code> 需要特殊处理的是当条件为真时，后续的 operator&lt;&lt; 运算符和日志内容依旧存在，需要确保这些语句能够正确编译，但又不会输出内容到终端上。这一点与 <code>assert</code> 有所不同。    </p>
+<p>我的做法是无论条件真假，都返回一个支持 operator&lt;&lt; 运算符的对象，但只有条件为假时才会输出日志，并且在对象析构时结束程序。<br>这个对象的类我取名为 <code>AbortOutputStream</code>，内部就是简单封装一下 <code>std::cerr</code>。先看声明：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">AbortOutputStream</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="comment">/// 接受一个布尔值，表面是否输出日志和结束程序</span></span><br><span class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">AbortOutputStream</span><span class="params">(<span class="type">bool</span> work)</span></span></span><br><span class="line"><span class="function">    </span></span><br><span class="line"><span class="function">    <span class="comment">/// 析构函数内会结束程序</span></span></span><br><span class="line"><span class="function">    ~<span class="title">AbortOutputStream</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">    <span class="comment">/// 流式风格输出的实现，因为需要</span></span></span><br><span class="line"><span class="function">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">    AbortOutputStream &amp;<span class="keyword">operator</span>&lt;&lt;<span class="params">(<span class="type">const</span> T &amp;item)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">    <span class="comment">/// 额外的输出方式</span></span></span><br><span class="line"><span class="function">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span>... Ts&gt;</span></span><br><span class="line"><span class="function">    AbortOutputStream &amp;<span class="title">Print</span><span class="params">(<span class="type">const</span> T &amp;item, <span class="type">const</span> Ts... items)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">    <span class="comment">/// 额外的输出方式</span></span></span><br><span class="line"><span class="function">    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span></span><br><span class="line"><span class="function">    AbortOutputStream &amp;<span class="title">Print</span><span class="params">(<span class="type">const</span> T &amp;item)</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">    <span class="keyword">private</span>:</span></span><br><span class="line"><span class="function">        bool work_ =</span> <span class="literal">false</span>;</span><br><span class="line">        <span class="type">size_t</span> output_count_ = <span class="number">0</span>;</span><br><span class="line">    &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>构造函数 <code>AbortOutputStream(bool work)</code> 会接受一个布尔值并初始化成员变量 <code>work_</code>，这个值非常关键，决定了是否会输出日志和结束程序。   </p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">explicit</span> <span class="title">AbortOutputStream</span><span class="params">(<span class="type">bool</span> work)</span></span></span><br><span class="line"><span class="function">    : work_(work) &#123;</span>&#125;</span><br></pre></td></tr></table></figure>
+
+<p>析构函数 <code>~AbortOutputStream()</code> 内部会根据 <code>work_</code> 的值是否为真，决定要不要结束程序。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">~<span class="built_in">AbortOutputStream</span>()</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">if</span> (work_)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">/// 先输出个换行和刷新缓冲区</span></span><br><span class="line">        std::cerr &lt;&lt; std::endl;</span><br><span class="line">        <span class="comment">/// 然后结束程序</span></span><br><span class="line">        <span class="built_in">abort</span>();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>实现日志输的出部分比较奇葩，日志信息主要分为两个部分，第一个部分是错误的条件和位置，另一个部分是用户自定义的日志内容。在有用户自定义输出内容是是这样的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[!!!!!! ASSERT &#x27;some_condition&#x27; ERROR !!!!!!]</span><br><span class="line">location: /xx/main.cpp:21 main</span><br><span class="line">what: XXX 条件的需要满足 XXX，当前的值为 ...</span><br></pre></td></tr></table></figure>
+<p>没有时是这样的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[!!!!!! ASSERT &#x27;some_condition&#x27; ERROR !!!!!!]</span><br><span class="line">location: /xx/main.cpp:21 main</span><br></pre></td></tr></table></figure>
+<p><code>AbortOutputStream</code> 实现中的两个 <code>Print</code> 函数正是用来输出错误的条件和位置部分，由于需要输出任意类型任意数量的内容，实现 <code>Print</code> 需要用到模板元编程的一些技巧。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/// 接受任意数量参数的 Print 是一个递归函数，他会递归调用自己，</span></span><br><span class="line"><span class="comment">/// 直到参数包 items 只剩下一个元素，这时候就会重载到另一个只接受一个参数的 Print 函数作为递</span></span><br><span class="line"><span class="comment">/// 归的结束条件。</span></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span>... Ts&gt;</span><br><span class="line"><span class="function">AbortOutputStream &amp;<span class="title">Print</span><span class="params">(<span class="type">const</span> T &amp;item, <span class="type">const</span> Ts &amp;...items)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (work_)</span><br><span class="line">    &#123;</span><br><span class="line">        std::cerr &lt;&lt; item;</span><br><span class="line">        <span class="built_in">Print</span>(items...);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/// Print 函数的递归结束条件重载</span></span><br><span class="line"><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="function">AbortOutputStream &amp;<span class="title">Print</span><span class="params">(<span class="type">const</span> T &amp;item)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (work_)</span><br><span class="line">    &#123;</span><br><span class="line">        std::cerr &lt;&lt; item;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>(●’◡’●)</p>
+
+      </div>
+      
+    </div>
+    
+  <div id="btn-catalog" class="btn-catalog">
+    <i class="iconfont icon-catalog"></i>
+  </div>
+  <div class="post-catalog hidden" id="catalog">
+    <div class="title">目录</div>
+    <div class="catalog-content">
+      
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E4%BB%8B"><span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%9B%AE%E7%9A%84%E5%92%8C%E8%AE%BE%E6%83%B3"><span class="toc-text">目的和设想</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%8E%B0"><span class="toc-text">实现</span></a></li></ol>
+      
+    </div>
+  </div>
+
+  
+<script src="/js/catalog.js"></script>
+
+
+
+
+    
+      <div class="comments-container">
+        
+
+
+
+
+
+
+
+      </div>
+    
+  </div>
+
+
+        
+<div class="footer">
+  <div class="social">
+    <ul>
+      
+        <li>
+          <a title="zjlian" target="_blank" rel="noopener" href="https://github.com/zjlian">
+            <i class="iconfont icon-github"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a title="TIDC" target="_blank" rel="noopener" href="https://github.com/TIDC">
+            <i class="iconfont icon-github"></i>
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+  
+    
+    <div class="footer-more">
+      
+        <a href="https://zjlian.github.io">© 2023 (oﾟvﾟ)ノ ZJLIAN</a>
+        
+    </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">由 Hexo & Oranges 强力驱动</a>
+        
+    </div>
+  
+</div>
+
+      </div>
+
+      <div class="tools-bar">
+        <div class="back-to-top tools-bar-item hidden">
+  <a href="javascript: void(0)">
+    <i class="iconfont icon-chevronup"></i>
+  </a>
+</div>
+
+
+<script src="/js/backtotop.js"></script>
+
+
+
+        
+  <div class="search-icon tools-bar-item" id="search-icon">
+    <a href="javascript: void(0)">
+      <i class="iconfont icon-search"></i>
+    </a>
+  </div>
+
+  <div class="search-overlay hidden">
+    <div class="search-content" tabindex="0">
+      <div class="search-title">
+        <span class="search-icon-input">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-search"></i>
+          </a>
+        </span>
+        
+          <input type="text" class="search-input" id="search-input" placeholder="搜索...">
+        
+        <span class="search-close-icon" id="search-close-icon">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-close"></i>
+          </a>
+        </span>
+      </div>
+      <div class="search-result" id="search-result"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var inputArea = document.querySelector("#search-input")
+    var searchOverlayArea = document.querySelector(".search-overlay")
+
+    inputArea.onclick = function() {
+      getSearchFile()
+      this.onclick = null
+    }
+
+    inputArea.onkeydown = function() {
+      if(event.keyCode == 13)
+        return false
+    }
+
+    function openOrHideSearchContent() {
+      let isHidden = searchOverlayArea.classList.contains('hidden')
+      if (isHidden) {
+        searchOverlayArea.classList.remove('hidden')
+        document.body.classList.add('hidden')
+        // inputArea.focus()
+      } else {
+        searchOverlayArea.classList.add('hidden')
+        document.body.classList.remove('hidden')
+      }
+    }
+
+    function blurSearchContent(e) {
+      if (e.target === searchOverlayArea) {
+        openOrHideSearchContent()
+      }
+    }
+
+    document.querySelector("#search-icon").addEventListener("click", openOrHideSearchContent, false)
+    document.querySelector("#search-close-icon").addEventListener("click", openOrHideSearchContent, false)
+    searchOverlayArea.addEventListener("click", blurSearchContent, false)
+
+    var searchFunc = function (path, search_id, content_id) {
+      'use strict';
+      var $input = document.getElementById(search_id);
+      var $resultContent = document.getElementById(content_id);
+      $resultContent.innerHTML = "<ul><span class='local-search-empty'>首次搜索，正在载入索引文件，请稍后……<span></ul>";
+      $.ajax({
+        // 0x01. load xml file
+        url: path,
+        dataType: "xml",
+        success: function (xmlResponse) {
+          // 0x02. parse xml file
+          var datas = $("entry", xmlResponse).map(function () {
+            return {
+              title: $("title", this).text(),
+              content: $("content", this).text(),
+              url: $("url", this).text()
+            };
+          }).get();
+          $resultContent.innerHTML = "";
+
+          $input.addEventListener('input', function () {
+            // 0x03. parse query to keywords list
+            var str = '<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length <= 0) {
+              return;
+            }
+            // 0x04. perform local searching
+            datas.forEach(function (data) {
+              var isMatch = true;
+              var content_index = [];
+              if (!data.title || data.title.trim() === '') {
+                data.title = "Untitled";
+              }
+              var orig_data_title = data.title.trim();
+              var data_title = orig_data_title.toLowerCase();
+              var orig_data_content = data.content.trim().replace(/<[^>]+>/g, "");
+              var data_content = orig_data_content.toLowerCase();
+              var data_url = data.url;
+              var index_title = -1;
+              var index_content = -1;
+              var first_occur = -1;
+              // only match artiles with not empty contents
+              if (data_content !== '') {
+                keywords.forEach(function (keyword, i) {
+                  index_title = data_title.indexOf(keyword);
+                  index_content = data_content.indexOf(keyword);
+
+                  if (index_title < 0 && index_content < 0) {
+                    isMatch = false;
+                  } else {
+                    if (index_content < 0) {
+                      index_content = 0;
+                    }
+                    if (i == 0) {
+                      first_occur = index_content;
+                    }
+                    // content_index.push({index_content:index_content, keyword_len:keyword_len});
+                  }
+                });
+              } else {
+                isMatch = false;
+              }
+              // 0x05. show search results
+              if (isMatch) {
+                str += "<li><a href='" + data_url + "' class='search-result-title'>" + orig_data_title + "</a>";
+                var content = orig_data_content;
+                if (first_occur >= 0) {
+                  // cut out 100 characters
+                  var start = first_occur - 20;
+                  var end = first_occur + 80;
+
+                  if (start < 0) {
+                    start = 0;
+                  }
+
+                  if (start == 0) {
+                    end = 100;
+                  }
+
+                  if (end > content.length) {
+                    end = content.length;
+                  }
+
+                  var match_content = content.substr(start, end);
+
+                  // highlight all keywords
+                  keywords.forEach(function (keyword) {
+                    var regS = new RegExp(keyword, "gi");
+                    match_content = match_content.replace(regS, "<span class=\"search-keyword\">" + keyword + "</span>");
+                  });
+
+                  str += "<p class=\"search-result-abstract\">" + match_content + "...</p>"
+                }
+                str += "</li>";
+              }
+            });
+            str += "</ul>";
+            if (str.indexOf('<li>') === -1) {
+              return $resultContent.innerHTML = "<ul><span class='local-search-empty'>没有找到内容，请尝试更换检索词。<span></ul>";
+            }
+            $resultContent.innerHTML = str;
+          });
+        },
+        error: function(xhr, status, error) {
+          $resultContent.innerHTML = ""
+          if (xhr.status === 404) {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>未找到search.xml文件，具体请参考：<a href='https://github.com/zchengsite/hexo-theme-oranges#configuration' target='_black'>configuration</a><span></ul>";
+          } else {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>请求失败，尝试重新刷新页面或稍后重试。<span></ul>";
+          }
+        }
+      });
+      $(document).on('click', '#search-close-icon', function() {
+        $('#search-input').val('');
+        $('#search-result').html('');
+      });
+    }
+
+    var getSearchFile = function() {
+        var path = "/search.xml";
+        searchFunc(path, 'search-input', 'search-result');
+    }
+  </script>
+
+
+
+
+        
+  <div class="tools-bar-item theme-icon" id="switch-color-scheme">
+    <a href="javascript: void(0)">
+      <i id="theme-icon" class="iconfont icon-moon"></i>
+    </a>
+  </div>
+
+  
+<script src="/js/colorscheme.js"></script>
+
+
+
+
+
+        
+
+      </div>
+    </div>
+  <script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                preloadRatio: 3,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var e=n.imageLazyLoadSetting.isSPA,i=n.imageLazyLoadSetting.preloadRatio||1,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){e&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,a=0;a<r.length;a++)0<=(t=(t=r[a]).getBoundingClientRect()).bottom&&0<=t.left&&t.top<=(n.innerHeight*i||document.documentElement.clientHeight*i)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},t.src!==i&&(n.src=i)}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN" color-mode="light">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="keywords" content="zjlian,c++,linux,程序员,博客,笔记" />
+  <meta name="author" content="zjlian" />
+  <meta name="description" content="" />
+  
+  
+  <title>
+    
+      [CMU 数据库系统] Lecture #01: Relational Model &amp; Relational Algebra 
+      
+      
+      |
+    
+     zjlian&#39;s blog
+  </title>
+
+  
+    <link rel="apple-touch-icon" href="/images/favicon.gif">
+    <link rel="icon" href="/images/favicon.gif">
+  
+
+  <!-- Raleway-Font -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+  <!-- hexo site css -->
+  
+<link rel="stylesheet" href="/css/color-scheme.css">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1886449_67xjft27j1l.css">
+<link rel="stylesheet" href="/css/github-markdown.css">
+<link rel="stylesheet" href="/css/highlight.css">
+<link rel="stylesheet" href="/css/comments.css">
+
+  <!-- 代码块风格 -->
+  
+
+  <!-- jquery3.3.1 -->
+  
+    <script defer type="text/javascript" src="/plugins/jquery.min.js"></script>
+  
+
+  <!-- fancybox -->
+  
+    <link href="/plugins/jquery.fancybox.min.css" rel="stylesheet">
+    <script defer type="text/javascript" src="/plugins/jquery.fancybox.min.js"></script>
+  
+  
+<script src="/js/fancybox.js"></script>
+
+
+  
+
+  <script>
+    var html = document.documentElement
+    const colorMode = localStorage.getItem('color-mode')
+    if (colorMode) {
+      document.documentElement.setAttribute('color-mode', colorMode)
+    }
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7242444166481573"
+  crossorigin="anonymous"></script>
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?a4f2cf6dfa7aa929c8a0a8bf7d62d2bb";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+    
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+  <body>
+    <div id="app">
+      <div class="header">
+  <div class="avatar">
+    <a href="/">
+      <!-- 头像取消懒加载，添加no-lazy -->
+      
+        <img no-lazy src="/images/avatar.gif" alt="">
+      
+    </a>
+    <div class="nickname"><a href="/">zjlian</a></div>
+  </div>
+  <div class="navbar">
+    <ul>
+      
+        <li class="nav-item" data-path="/">
+          <a href="/">首页</a>
+        </li>
+      
+        <li class="nav-item" data-path="/archives/">
+          <a href="/archives/">全部文章</a>
+        </li>
+      
+        <li class="nav-item" data-path="/categories/">
+          <a href="/categories/">分类</a>
+        </li>
+      
+        <li class="nav-item" data-path="/about/">
+          <a href="/about/">关于我</a>
+        </li>
+      
+    </ul>
+  </div>
+</div>
+
+
+<script src="/js/activeNav.js"></script>
+
+
+
+      <div class="flex-container">
+        <!-- 文章详情页，展示文章具体内容，url形式：https://yoursite/文章标题/ -->
+<!-- 同时为「标签tag」，「朋友friend」，「分类categories」，「关于about」页面的承载页面，具体展示取决于page.type -->
+
+
+  <!-- LaTex Display -->
+
+  
+    <script async type="text/javascript" src="/plugins/mathjax/tex-chtml.js"></script>
+  
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    }
+  </script>
+
+
+
+
+
+  <!-- clipboard -->
+
+  
+    <script async type="text/javascript" src="/plugins/clipboard.min.js"></script>
+  
+  
+<script src="/js/codeCopy.js"></script>
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  <!-- 文章内容页 url形式：https://yoursite/文章标题/ -->
+  <div class="container post-details" id="post-details">
+    <div class="post-content">
+      <div class="post-title">[CMU 数据库系统] Lecture #01: Relational Model & Relational Algebra</div>
+      <div class="post-attach">
+        <span class="post-pubtime">
+          <i class="iconfont icon-updatetime" title="更新时间"></i>
+          2022-07-31 04:42:36
+        </span>
+        
+              <span class="post-categories">
+                <i class="iconfont icon-bookmark" title="分类"></i>
+                
+                <span class="span--category">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" title="数据库">
+                    <b>#</b> 数据库
+                  </a>
+                </span>
+                
+                <span class="span--category">
+                  <a href="/categories/CMU/" title="CMU">
+                    <b>#</b> CMU
+                  </a>
+                </span>
+                
+                <span class="span--category">
+                  <a href="/categories/%E7%BF%BB%E8%AF%91/" title="翻译">
+                    <b>#</b> 翻译
+                  </a>
+                </span>
+                
+              </span>
+          
+      </div>
+      <div class="markdown-body">
+        <blockquote>
+<p>本文是卡内基梅隆大学（CMU）的公开课 《Database System》的课件的翻译<br>第一课：关系模型与关系代数<br>原文链接：<a target="_blank" rel="noopener" href="https://15445.courses.cs.cmu.edu/fall2021/notes/01-introduction.pdf">https://15445.courses.cs.cmu.edu/fall2021/notes/01-introduction.pdf</a><br>课程视频：<a target="_blank" rel="noopener" href="https://www.youtube.com/watch?v=v4bU6n97Vr8&amp;list=PLSE8ODhjZXjZaHA6QcxDfJ0SIWBzQFKEG">https://www.youtube.com/watch?v=v4bU6n97Vr8&amp;list=PLSE8ODhjZXjZaHA6QcxDfJ0SIWBzQFKEG</a>   </p>
+</blockquote>
+<h2 id="1-Databases"><a href="#1-Databases" class="headerlink" title="1 Databases"></a>1 Databases</h2><p>数据库 (<em>database</em>) 是一个有组织的相互关联的数据集合，它用于对现实世界进行建模，例如建立学生与班级的关系模型，或者是一个数字音乐商店。我们口头上的叫法通常不会区分 “数据库” 与 “数据库管理系统 (<em>database management system</em>)” 之间的差别，实际上我们常用的数据库软件都应该被称作 “数据库管理系统”，而不是 “数据库”，这些软件有 MySQL、Oracle 和 MongoDB 等等，它们都是用来管理数据库的软件。</p>
+<p>思考一下如何建模一个数字音乐商店，在数据库中存放艺人和这些艺人发布的专辑。</p>
+<h2 id="2-Flat-File-Strawman"><a href="#2-Flat-File-Strawman" class="headerlink" title="2 Flat File Strawman"></a>2 Flat File Strawman</h2><p>先假设数据库管理系统里的数据库都是以 CSV 文件的形式存储的，每一个实体都存在他自己的文件里（实体是客观存在的事物，例如一个学生或者是一个教室，都是实体）。应用程序每次想要读取或者是更新时，都要解析整个文件。每一个实体可以拥有多个属性，因此在 CSV 文件中，每一行记录代表一个实体，而每一个记录中对应的属性使用逗号进行分隔。</p>
+<p>继续电子音乐商店的例子，它需要两个数据库文件，一个存艺人信息，另一个存专辑信息。一位艺人拥有名字、年龄和国籍等属性，而一张专辑拥有名字、艺人和发行日期等属性。</p>
+<blockquote>
+<p>TODO: 提供点 CSV 表格的例子</p>
+</blockquote>
+<h3 id="CSV-文件作为数据库需要思考的问题"><a href="#CSV-文件作为数据库需要思考的问题" class="headerlink" title="CSV 文件作为数据库需要思考的问题"></a>CSV 文件作为数据库需要思考的问题</h3><ul>
+<li><strong>数据完整性</strong><ul>
+<li>…</li>
+</ul>
+</li>
+<li><strong>如何使用</strong><ul>
+<li>…</li>
+</ul>
+</li>
+<li><strong>可靠性</strong><ul>
+<li>…</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-Database-Management-System"><a href="#3-Database-Management-System" class="headerlink" title="3 Database Management System"></a>3 Database Management System</h2><h2 id="4-Relational-Model"><a href="#4-Relational-Model" class="headerlink" title="4 Relational Model"></a>4 Relational Model</h2><h2 id="5-Data-Manipulation-Languages-DMLs"><a href="#5-Data-Manipulation-Languages-DMLs" class="headerlink" title="5 Data Manipulation Languages (DMLs)"></a>5 Data Manipulation Languages (DMLs)</h2><h2 id="6-Relational-Algebra"><a href="#6-Relational-Algebra" class="headerlink" title="6 Relational Algebra"></a>6 Relational Algebra</h2><h2 id="Observation"><a href="#Observation" class="headerlink" title="Observation"></a>Observation</h2><p>(●’◡’●)</p>
+
+      </div>
+      
+    </div>
+    
+  <div id="btn-catalog" class="btn-catalog">
+    <i class="iconfont icon-catalog"></i>
+  </div>
+  <div class="post-catalog hidden" id="catalog">
+    <div class="title">目录</div>
+    <div class="catalog-content">
+      
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-Databases"><span class="toc-text">1 Databases</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-Flat-File-Strawman"><span class="toc-text">2 Flat File Strawman</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CSV-%E6%96%87%E4%BB%B6%E4%BD%9C%E4%B8%BA%E6%95%B0%E6%8D%AE%E5%BA%93%E9%9C%80%E8%A6%81%E6%80%9D%E8%80%83%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-text">CSV 文件作为数据库需要思考的问题</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-Database-Management-System"><span class="toc-text">3 Database Management System</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-Relational-Model"><span class="toc-text">4 Relational Model</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-Data-Manipulation-Languages-DMLs"><span class="toc-text">5 Data Manipulation Languages (DMLs)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-Relational-Algebra"><span class="toc-text">6 Relational Algebra</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Observation"><span class="toc-text">Observation</span></a></li></ol>
+      
+    </div>
+  </div>
+
+  
+<script src="/js/catalog.js"></script>
+
+
+
+
+    
+      <div class="comments-container">
+        
+
+
+
+
+
+
+
+      </div>
+    
+  </div>
+
+
+        
+<div class="footer">
+  <div class="social">
+    <ul>
+      
+        <li>
+          <a title="zjlian" target="_blank" rel="noopener" href="https://github.com/zjlian">
+            <i class="iconfont icon-github"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a title="TIDC" target="_blank" rel="noopener" href="https://github.com/TIDC">
+            <i class="iconfont icon-github"></i>
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+  
+    
+    <div class="footer-more">
+      
+        <a href="https://zjlian.github.io">© 2023 (oﾟvﾟ)ノ ZJLIAN</a>
+        
+    </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">由 Hexo & Oranges 强力驱动</a>
+        
+    </div>
+  
+</div>
+
+      </div>
+
+      <div class="tools-bar">
+        <div class="back-to-top tools-bar-item hidden">
+  <a href="javascript: void(0)">
+    <i class="iconfont icon-chevronup"></i>
+  </a>
+</div>
+
+
+<script src="/js/backtotop.js"></script>
+
+
+
+        
+  <div class="search-icon tools-bar-item" id="search-icon">
+    <a href="javascript: void(0)">
+      <i class="iconfont icon-search"></i>
+    </a>
+  </div>
+
+  <div class="search-overlay hidden">
+    <div class="search-content" tabindex="0">
+      <div class="search-title">
+        <span class="search-icon-input">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-search"></i>
+          </a>
+        </span>
+        
+          <input type="text" class="search-input" id="search-input" placeholder="搜索...">
+        
+        <span class="search-close-icon" id="search-close-icon">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-close"></i>
+          </a>
+        </span>
+      </div>
+      <div class="search-result" id="search-result"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var inputArea = document.querySelector("#search-input")
+    var searchOverlayArea = document.querySelector(".search-overlay")
+
+    inputArea.onclick = function() {
+      getSearchFile()
+      this.onclick = null
+    }
+
+    inputArea.onkeydown = function() {
+      if(event.keyCode == 13)
+        return false
+    }
+
+    function openOrHideSearchContent() {
+      let isHidden = searchOverlayArea.classList.contains('hidden')
+      if (isHidden) {
+        searchOverlayArea.classList.remove('hidden')
+        document.body.classList.add('hidden')
+        // inputArea.focus()
+      } else {
+        searchOverlayArea.classList.add('hidden')
+        document.body.classList.remove('hidden')
+      }
+    }
+
+    function blurSearchContent(e) {
+      if (e.target === searchOverlayArea) {
+        openOrHideSearchContent()
+      }
+    }
+
+    document.querySelector("#search-icon").addEventListener("click", openOrHideSearchContent, false)
+    document.querySelector("#search-close-icon").addEventListener("click", openOrHideSearchContent, false)
+    searchOverlayArea.addEventListener("click", blurSearchContent, false)
+
+    var searchFunc = function (path, search_id, content_id) {
+      'use strict';
+      var $input = document.getElementById(search_id);
+      var $resultContent = document.getElementById(content_id);
+      $resultContent.innerHTML = "<ul><span class='local-search-empty'>首次搜索，正在载入索引文件，请稍后……<span></ul>";
+      $.ajax({
+        // 0x01. load xml file
+        url: path,
+        dataType: "xml",
+        success: function (xmlResponse) {
+          // 0x02. parse xml file
+          var datas = $("entry", xmlResponse).map(function () {
+            return {
+              title: $("title", this).text(),
+              content: $("content", this).text(),
+              url: $("url", this).text()
+            };
+          }).get();
+          $resultContent.innerHTML = "";
+
+          $input.addEventListener('input', function () {
+            // 0x03. parse query to keywords list
+            var str = '<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length <= 0) {
+              return;
+            }
+            // 0x04. perform local searching
+            datas.forEach(function (data) {
+              var isMatch = true;
+              var content_index = [];
+              if (!data.title || data.title.trim() === '') {
+                data.title = "Untitled";
+              }
+              var orig_data_title = data.title.trim();
+              var data_title = orig_data_title.toLowerCase();
+              var orig_data_content = data.content.trim().replace(/<[^>]+>/g, "");
+              var data_content = orig_data_content.toLowerCase();
+              var data_url = data.url;
+              var index_title = -1;
+              var index_content = -1;
+              var first_occur = -1;
+              // only match artiles with not empty contents
+              if (data_content !== '') {
+                keywords.forEach(function (keyword, i) {
+                  index_title = data_title.indexOf(keyword);
+                  index_content = data_content.indexOf(keyword);
+
+                  if (index_title < 0 && index_content < 0) {
+                    isMatch = false;
+                  } else {
+                    if (index_content < 0) {
+                      index_content = 0;
+                    }
+                    if (i == 0) {
+                      first_occur = index_content;
+                    }
+                    // content_index.push({index_content:index_content, keyword_len:keyword_len});
+                  }
+                });
+              } else {
+                isMatch = false;
+              }
+              // 0x05. show search results
+              if (isMatch) {
+                str += "<li><a href='" + data_url + "' class='search-result-title'>" + orig_data_title + "</a>";
+                var content = orig_data_content;
+                if (first_occur >= 0) {
+                  // cut out 100 characters
+                  var start = first_occur - 20;
+                  var end = first_occur + 80;
+
+                  if (start < 0) {
+                    start = 0;
+                  }
+
+                  if (start == 0) {
+                    end = 100;
+                  }
+
+                  if (end > content.length) {
+                    end = content.length;
+                  }
+
+                  var match_content = content.substr(start, end);
+
+                  // highlight all keywords
+                  keywords.forEach(function (keyword) {
+                    var regS = new RegExp(keyword, "gi");
+                    match_content = match_content.replace(regS, "<span class=\"search-keyword\">" + keyword + "</span>");
+                  });
+
+                  str += "<p class=\"search-result-abstract\">" + match_content + "...</p>"
+                }
+                str += "</li>";
+              }
+            });
+            str += "</ul>";
+            if (str.indexOf('<li>') === -1) {
+              return $resultContent.innerHTML = "<ul><span class='local-search-empty'>没有找到内容，请尝试更换检索词。<span></ul>";
+            }
+            $resultContent.innerHTML = str;
+          });
+        },
+        error: function(xhr, status, error) {
+          $resultContent.innerHTML = ""
+          if (xhr.status === 404) {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>未找到search.xml文件，具体请参考：<a href='https://github.com/zchengsite/hexo-theme-oranges#configuration' target='_black'>configuration</a><span></ul>";
+          } else {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>请求失败，尝试重新刷新页面或稍后重试。<span></ul>";
+          }
+        }
+      });
+      $(document).on('click', '#search-close-icon', function() {
+        $('#search-input').val('');
+        $('#search-result').html('');
+      });
+    }
+
+    var getSearchFile = function() {
+        var path = "/search.xml";
+        searchFunc(path, 'search-input', 'search-result');
+    }
+  </script>
+
+
+
+
+        
+  <div class="tools-bar-item theme-icon" id="switch-color-scheme">
+    <a href="javascript: void(0)">
+      <i id="theme-icon" class="iconfont icon-moon"></i>
+    </a>
+  </div>
+
+  
+<script src="/js/colorscheme.js"></script>
+
+
+
+
+
+        
+
+      </div>
+    </div>
+  <script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                preloadRatio: 3,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var e=n.imageLazyLoadSetting.isSPA,i=n.imageLazyLoadSetting.preloadRatio||1,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){e&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,a=0;a<r.length;a++)0<=(t=(t=r[a]).getBoundingClientRect()).bottom&&0<=t.left&&t.top<=(n.innerHeight*i||document.documentElement.clientHeight*i)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},t.src!==i&&(n.src=i)}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>

@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN" color-mode="light">
+
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="keywords" content="zjlian,c++,linux,程序员,博客,笔记" />
+  <meta name="author" content="zjlian" />
+  <meta name="description" content="" />
+  
+  
+  <title>
+    
+      快速泊松碟采样算法的 C++ 实现 
+      
+      
+      |
+    
+     zjlian&#39;s blog
+  </title>
+
+  
+    <link rel="apple-touch-icon" href="/images/favicon.gif">
+    <link rel="icon" href="/images/favicon.gif">
+  
+
+  <!-- Raleway-Font -->
+  <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+  <!-- hexo site css -->
+  
+<link rel="stylesheet" href="/css/color-scheme.css">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1886449_67xjft27j1l.css">
+<link rel="stylesheet" href="/css/github-markdown.css">
+<link rel="stylesheet" href="/css/highlight.css">
+<link rel="stylesheet" href="/css/comments.css">
+
+  <!-- 代码块风格 -->
+  
+
+  <!-- jquery3.3.1 -->
+  
+    <script defer type="text/javascript" src="/plugins/jquery.min.js"></script>
+  
+
+  <!-- fancybox -->
+  
+    <link href="/plugins/jquery.fancybox.min.css" rel="stylesheet">
+    <script defer type="text/javascript" src="/plugins/jquery.fancybox.min.js"></script>
+  
+  
+<script src="/js/fancybox.js"></script>
+
+
+  
+
+  <script>
+    var html = document.documentElement
+    const colorMode = localStorage.getItem('color-mode')
+    if (colorMode) {
+      document.documentElement.setAttribute('color-mode', colorMode)
+    }
+  </script>
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7242444166481573"
+  crossorigin="anonymous"></script>
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?a4f2cf6dfa7aa929c8a0a8bf7d62d2bb";
+      var s = document.getElementsByTagName("script")[0]; 
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+    
+<meta name="generator" content="Hexo 6.2.0"></head>
+
+
+  <body>
+    <div id="app">
+      <div class="header">
+  <div class="avatar">
+    <a href="/">
+      <!-- 头像取消懒加载，添加no-lazy -->
+      
+        <img no-lazy src="/images/avatar.gif" alt="">
+      
+    </a>
+    <div class="nickname"><a href="/">zjlian</a></div>
+  </div>
+  <div class="navbar">
+    <ul>
+      
+        <li class="nav-item" data-path="/">
+          <a href="/">首页</a>
+        </li>
+      
+        <li class="nav-item" data-path="/archives/">
+          <a href="/archives/">全部文章</a>
+        </li>
+      
+        <li class="nav-item" data-path="/categories/">
+          <a href="/categories/">分类</a>
+        </li>
+      
+        <li class="nav-item" data-path="/about/">
+          <a href="/about/">关于我</a>
+        </li>
+      
+    </ul>
+  </div>
+</div>
+
+
+<script src="/js/activeNav.js"></script>
+
+
+
+      <div class="flex-container">
+        <!-- 文章详情页，展示文章具体内容，url形式：https://yoursite/文章标题/ -->
+<!-- 同时为「标签tag」，「朋友friend」，「分类categories」，「关于about」页面的承载页面，具体展示取决于page.type -->
+
+
+  <!-- LaTex Display -->
+
+  
+    <script async type="text/javascript" src="/plugins/mathjax/tex-chtml.js"></script>
+  
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    }
+  </script>
+
+
+
+
+
+  <!-- clipboard -->
+
+  
+    <script async type="text/javascript" src="/plugins/clipboard.min.js"></script>
+  
+  
+<script src="/js/codeCopy.js"></script>
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  <!-- 文章内容页 url形式：https://yoursite/文章标题/ -->
+  <div class="container post-details" id="post-details">
+    <div class="post-content">
+      <div class="post-title">快速泊松碟采样算法的 C++ 实现</div>
+      <div class="post-attach">
+        <span class="post-pubtime">
+          <i class="iconfont icon-updatetime" title="更新时间"></i>
+          2021-05-23 18:51:00
+        </span>
+        
+              <span class="post-categories">
+                <i class="iconfont icon-bookmark" title="分类"></i>
+                
+                <span class="span--category">
+                  <a href="/categories/cpp/" title="cpp">
+                    <b>#</b> cpp
+                  </a>
+                </span>
+                
+                <span class="span--category">
+                  <a href="/categories/%E7%AE%97%E6%B3%95/" title="算法">
+                    <b>#</b> 算法
+                  </a>
+                </span>
+                
+              </span>
+          
+      </div>
+      <div class="markdown-body">
+        <p>因为最近打工写的算法中，有一个步骤需要生成二维平面上生成一组均匀分布的随机点（任意两点的距离不能小于 r），一开始自己想了好多方法，结果实现出来后运行的效果，感觉自己像个小丑🤡一样。  </p>
+<p>之后便花了点时间百度了一下，找到这个叫快速泊松碟采样（Fast Poisson Disc Sampling）的算法挺符合需求的，但百度上好像没有看到 C++ 的实现，于是我<del>抄</del>实现了个C++的版本作为参考。该版本没有考虑性能，只是能用。</p>
+<h2 id="算法思路"><a href="#算法思路" class="headerlink" title="算法思路"></a>算法思路</h2><p>算法的核心思想就是对二维平面进行分区，划分成一个个小区块，小区块的斜边长度为两点的间隔 r，因为斜边是一个正方形里最长线段，如果两个点同时出现在一个区块里，那他们的距离必然是小于 r 的，这样就是可以用区块标记表在 O(1) 的时间复杂度下查询出两个点的距离是否过近。算法名字中的 <strong>Fast</strong> 应该就体现在这里。   </p>
+<p>算法的大致流程如下。想看算法出处的可以搜索文献 <strong>Fast Poisson Disk Sampling in Arbitrary Dimensions</strong> 看下。   </p>
+<ol>
+<li><p>根据间隔 r 划分区块</p>
+</li>
+<li><p>生成第一个随机点，将其加入结果集合和候选点集合中</p>
+</li>
+<li><p>从候选点集合中随机取一个点 P</p>
+</li>
+<li><p>以 P 为圆心，在半径 [r, 2r) 的圆内生成一个新的随机点 NewP</p>
+</li>
+<li><p>使用区块标记表查询 NewP 所在的区块是否已经存在随机点，查询计算周围8个区块的随机点与 NewP 的距离是否小于 r。如果 NewP不符合条件，回到步骤 4. 重复执行，直到成功或重试超过 30 次。</p>
+</li>
+<li><p>如果新随机点 NewP 采样成功，将 NewP 加入到结果集合和候选点集合中；如果失败，将 P 从候选点集合中移除</p>
+</li>
+<li><p>回到 3. ，直到候选点集合为空。</p>
+</li>
+</ol>
+<h2 id="算法实现"><a href="#算法实现" class="headerlink" title="算法实现"></a>算法实现</h2><p>代码实现需要先写一些准备工作的代码，比如描述“点”的向量类和一些随机数生成函数。</p>
+<p>依赖的全部头文件如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;algorithm&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cstdint&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;cmath&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;ctime&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;ostream&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;type_traits&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;vector&gt;</span></span></span><br></pre></td></tr></table></figure>
+
+<p>描述点的向量如下</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Vec2_</span></span><br><span class="line">&#123;</span><br><span class="line"><span class="keyword">public</span>:</span><br><span class="line">    <span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherType&gt;</span></span><br><span class="line"><span class="function">    <span class="title">Vec2_</span><span class="params">(OtherType x, OtherType y)</span> </span></span><br><span class="line"><span class="function">        : x(static_cast&lt;T&gt;(x)), </span></span><br><span class="line"><span class="function">          y(static_cast&lt;T&gt;(y)) &#123;</span>&#125;</span><br><span class="line">    <span class="built_in">Vec2_</span>() : <span class="built_in">x</span>(<span class="number">0</span>), <span class="built_in">y</span>(<span class="number">0</span>) &#123;&#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherType&gt;</span></span><br><span class="line"><span class="function">    <span class="title">Vec2_</span><span class="params">(<span class="type">const</span> Vec2_&lt;OtherType&gt; &amp;rhs)</span> </span></span><br><span class="line"><span class="function">        : x(static_cast&lt;T&gt;(rhs.x)), </span></span><br><span class="line"><span class="function">          y(static_cast&lt;T&gt;(rhs.y)) </span></span><br><span class="line"><span class="function">    &#123;</span>&#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherType&gt;</span><br><span class="line">    Vec2_&lt;T&gt;&amp; <span class="keyword">operator</span>=(<span class="type">const</span> Vec2_&lt;OtherType&gt; &amp;rhs)</span><br><span class="line">    &#123;</span><br><span class="line">        x = <span class="built_in">static_cast</span>&lt;T&gt;(rhs.x);</span><br><span class="line">        y = <span class="built_in">static_cast</span>&lt;T&gt;(rhs.y);</span><br><span class="line">        <span class="keyword">return</span> *<span class="keyword">this</span>;</span><br><span class="line">    &#125; </span><br><span class="line"></span><br><span class="line">    <span class="type">bool</span> <span class="keyword">operator</span>==(<span class="type">const</span> Vec2_ &amp;pt) <span class="type">const</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">return</span> (<span class="keyword">this</span>-&gt;x == pt.x &amp;&amp; <span class="keyword">this</span>-&gt;y == pt.y);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    Vec2_ <span class="keyword">operator</span>*(T n) <span class="type">const</span> &#123; <span class="keyword">return</span> &#123;x * n, y * n&#125;; &#125;</span><br><span class="line"></span><br><span class="line">    Vec2_ <span class="keyword">operator</span>+(T n) <span class="type">const</span> &#123; <span class="keyword">return</span> &#123;x + n, y + n&#125;; &#125;</span><br><span class="line"></span><br><span class="line">    Vec2_ <span class="keyword">operator</span>+(Vec2_ n) <span class="type">const</span> &#123; <span class="keyword">return</span> &#123;x + n.x, y + n.y&#125;; &#125;</span><br><span class="line"></span><br><span class="line">    Vec2_ <span class="keyword">operator</span>-(Vec2_ n) <span class="type">const</span> &#123; <span class="keyword">return</span> &#123;x - n.x, y - n.y&#125;; &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取归一化的向量</span></span><br><span class="line">    <span class="function">Vec2_&lt;<span class="type">double</span>&gt; <span class="title">Normalized</span><span class="params">()</span></span></span><br><span class="line"><span class="function">    </span>&#123;</span><br><span class="line">        <span class="keyword">auto</span> len = <span class="built_in">Magnitude</span>();</span><br><span class="line">        <span class="keyword">if</span> (len != <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">auto</span> n = <span class="number">1</span> / len;</span><br><span class="line">            <span class="keyword">return</span> &#123;x * n, y * n&#125;;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> </span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> &#123;<span class="number">0</span>, <span class="number">0</span>&#125;;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取向量的长度</span></span><br><span class="line">    <span class="function"><span class="type">double</span> <span class="title">Magnitude</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="built_in">sqrt</span>(x * x + y * y); &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 类型转换</span></span><br><span class="line">    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherType&gt;</span><br><span class="line">    <span class="keyword">operator</span> <span class="built_in">Vec2_</span>&lt;OtherType&gt;()</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> &#123;<span class="built_in">static_cast</span>&lt;OtherType&gt;(x), <span class="built_in">static_cast</span>&lt;OtherType&gt;(y)&#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    T x; <span class="comment">//坐标点的x值</span></span><br><span class="line">    T y; <span class="comment">//坐标点的y值</span></span><br><span class="line">&#125;;</span><br><span class="line"><span class="keyword">typedef</span> Vec2_&lt;<span class="type">int32_t</span>&gt; Vec2Int32;</span><br><span class="line"><span class="keyword">typedef</span> Vec2_&lt;<span class="type">int64_t</span>&gt; Vec2Int64;</span><br><span class="line"><span class="keyword">typedef</span> Vec2_&lt;<span class="type">double</span>&gt; Vec2;</span><br></pre></td></tr></table></figure>
+
+<p>伪随机数生成方面，由于C语言的 rand() 函数执行效率过于低下，严重影响算法的性能。C++ STL 的 mt19937 算法性能不错，但 API 组合起来比较复杂，当时一时半会儿还没太弄明白到底有多少种用法，那种用法更合适。</p>
+<p>于是抄了个代码非常简短的 xor shift 伪随机数生成算法，性能也非常好。并且基于 xor shift 封装了几个需要的工具函数。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> Random</span><br><span class="line">&#123;</span><br><span class="line"><span class="function"><span class="keyword">inline</span> <span class="type">uint32_t</span> <span class="title">XorShift32</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">static</span> <span class="type">uint32_t</span> seed = <span class="built_in">time</span>(<span class="number">0</span>);</span><br><span class="line">    <span class="type">uint32_t</span> x = seed;</span><br><span class="line">    x ^= x &lt;&lt; <span class="number">13</span>;</span><br><span class="line">    x ^= x &gt;&gt; <span class="number">17</span>;</span><br><span class="line">    x ^= x &lt;&lt; <span class="number">5</span>;</span><br><span class="line">    seed = x;</span><br><span class="line">    <span class="keyword">return</span> x;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取 [min, max) 区间内的随机整数</span></span><br><span class="line"><span class="function"><span class="keyword">inline</span> <span class="type">int32_t</span> <span class="title">Range</span><span class="params">(<span class="type">int32_t</span> min, <span class="type">int32_t</span> max)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> (<span class="built_in">XorShift32</span>() + min) % max;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取 [0, max) 区间内的随机整数</span></span><br><span class="line"><span class="function"><span class="keyword">inline</span> <span class="type">int32_t</span> <span class="title">Range</span><span class="params">(<span class="type">int32_t</span> max)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Range</span>(<span class="number">0</span>, max);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 获取半径为 1 的圆内的随机点</span></span><br><span class="line"><span class="function"><span class="keyword">inline</span> Vec2 <span class="title">InsideUnitSphere</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="type">double</span> theta = <span class="built_in">Range</span>(<span class="number">360</span> * <span class="number">1000</span>) / <span class="number">1000.0</span>;</span><br><span class="line">    <span class="type">double</span> r = <span class="built_in">Range</span>(<span class="number">1000</span>) / <span class="number">1000.0</span>;</span><br><span class="line">    <span class="keyword">return</span> &#123;(<span class="built_in">sqrt</span>(r) * <span class="built_in">cos</span>(theta)), (<span class="built_in">sqrt</span>(r) * <span class="built_in">sin</span>(theta))&#125;;</span><br><span class="line">&#125;</span><br><span class="line">&#125; <span class="comment">// namespace Random</span></span><br></pre></td></tr></table></figure>
+
+<p>快速泊松碟采样算法实现如下：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">namespace</span> Random</span><br><span class="line">&#123;</span><br><span class="line"><span class="comment">// 快速泊松碟随机采样算法，在一定范围内生成均匀分布的随机点</span></span><br><span class="line"><span class="function"><span class="keyword">inline</span> std::vector&lt;Vec2&gt; <span class="title">FastPoissonDiscSampling</span><span class="params">(Vec2 range, <span class="type">int32_t</span> threshold)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="comment">// boost::timer t;</span></span><br><span class="line">    std::vector&lt;Vec2&gt; list;</span><br><span class="line">    <span class="comment">// 重试次数上限</span></span><br><span class="line">    <span class="keyword">constexpr</span> <span class="type">int32_t</span> max_retry = <span class="number">20</span>;</span><br><span class="line">    <span class="comment">// n 的值等于 sqrt(维度)</span></span><br><span class="line">    <span class="keyword">auto</span> n = std::<span class="built_in">sqrt</span>(<span class="number">2</span>);</span><br><span class="line">    <span class="comment">// threshold 除上 sqrt(2)，可用保证每一个区块的斜边长为 threshold，</span></span><br><span class="line">    <span class="comment">// 从而确保一个区块内的任意两个点的距离都是小于 threshold 的。</span></span><br><span class="line">    <span class="comment">// 利用这个特性可用快速的确定两个采样点的间距小于 threshold。</span></span><br><span class="line">    <span class="keyword">auto</span> cell_size = threshold / n;</span><br><span class="line">    <span class="comment">// 划分区块</span></span><br><span class="line">    <span class="type">int32_t</span> cols = std::<span class="built_in">ceil</span>(range.x / cell_size);</span><br><span class="line">    <span class="type">int32_t</span> rows = std::<span class="built_in">ceil</span>(range.y / cell_size);</span><br><span class="line">    <span class="comment">// 区块矩阵</span></span><br><span class="line">    std::vector&lt;std::vector&lt;<span class="type">int32_t</span>&gt;&gt; grids;</span><br><span class="line">    grids.<span class="built_in">resize</span>(rows);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> &amp;row : grids)</span><br><span class="line">    &#123;</span><br><span class="line">        row.<span class="built_in">resize</span>(cols, <span class="number">-1</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 开始</span></span><br><span class="line">    <span class="comment">// 随机选一个初始点</span></span><br><span class="line">    <span class="keyword">auto</span> start = Vec2&#123;Random::<span class="built_in">Range</span>(range.x), Random::<span class="built_in">Range</span>(range.y)&#125;;</span><br><span class="line">    <span class="type">int32_t</span> col = std::<span class="built_in">floor</span>(start.x / cell_size);</span><br><span class="line">    <span class="type">int32_t</span> row = std::<span class="built_in">floor</span>(start.y / cell_size);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">auto</span> start_key = list.<span class="built_in">size</span>();</span><br><span class="line">    list.<span class="built_in">push_back</span>(start);</span><br><span class="line">    grids[row][col] = start_key;</span><br><span class="line"></span><br><span class="line">    std::vector&lt;<span class="type">int</span>&gt; active_list;</span><br><span class="line">    active_list.<span class="built_in">push_back</span>(start_key);</span><br><span class="line"></span><br><span class="line">    <span class="type">double</span> r = threshold;</span><br><span class="line">    <span class="keyword">while</span> (active_list.<span class="built_in">size</span>() &gt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">// 在已经有的采样集合中取一个点, 在这个点周围生成新的采样点</span></span><br><span class="line">        <span class="keyword">auto</span> key = active_list[Random::<span class="built_in">Range</span>(active_list.<span class="built_in">size</span>())];</span><br><span class="line">        <span class="comment">// auto key = active_list[0];</span></span><br><span class="line">        <span class="keyword">auto</span> point = list[key];</span><br><span class="line">        <span class="type">bool</span> found = <span class="literal">false</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int32_t</span> i = <span class="number">0</span>; i &lt; max_retry; i++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">auto</span> direct = Random::<span class="built_in">InsideUnitSphere</span>();</span><br><span class="line">            <span class="comment">// 给原有的采样点 point 加上一个距离 [r, 2r) 的随机向量，成为新的采样点</span></span><br><span class="line">            <span class="keyword">auto</span> new_point = point + ((direct.<span class="built_in">Normalized</span>() * r) + (direct * r));</span><br><span class="line">            <span class="keyword">if</span> ((new_point.x &lt; <span class="number">0</span> || new_point.x &gt;= range.x) ||</span><br><span class="line">                (new_point.y &lt; <span class="number">0</span> || new_point.y &gt;= range.y))</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            col = std::<span class="built_in">floor</span>(new_point.x / cell_size);</span><br><span class="line">            row = std::<span class="built_in">floor</span>(new_point.y / cell_size);</span><br><span class="line">            <span class="keyword">if</span> (grids[row][col] != <span class="number">-1</span>) <span class="comment">// 区块内已经有采样点类</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 检查新采样点周围区块是否存在距离小于 threshold 的点</span></span><br><span class="line">            <span class="type">bool</span> ok = <span class="literal">true</span>;</span><br><span class="line">            <span class="type">int32_t</span> min_r = std::<span class="built_in">floor</span>((new_point.y - threshold) / cell_size);</span><br><span class="line">            <span class="type">int32_t</span> max_r = std::<span class="built_in">floor</span>((new_point.y + threshold) / cell_size);</span><br><span class="line">            <span class="type">int32_t</span> min_c = std::<span class="built_in">floor</span>((new_point.x - threshold) / cell_size);</span><br><span class="line">            <span class="type">int32_t</span> max_c = std::<span class="built_in">floor</span>((new_point.x + threshold) / cell_size);</span><br><span class="line">            [&amp;]() &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int32_t</span> r = min_r; r &lt;= max_r; r++)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">if</span> (r &lt; <span class="number">0</span> || r &gt;= rows)</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">continue</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">for</span> (<span class="type">int32_t</span> c = min_c; c &lt;= max_c; c++)</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">if</span> (c &lt; <span class="number">0</span> || c &gt;= cols)</span><br><span class="line">                        &#123;</span><br><span class="line">                            <span class="keyword">continue</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="type">int32_t</span> point_key = grids[r][c];</span><br><span class="line">                        <span class="keyword">if</span> (point_key != <span class="number">-1</span>)</span><br><span class="line">                        &#123;</span><br><span class="line">                            <span class="keyword">auto</span> round_point = list[point_key];</span><br><span class="line">                            <span class="keyword">auto</span> dist = (round_point - new_point).<span class="built_in">Magnitude</span>();</span><br><span class="line">                            <span class="keyword">if</span> (dist &lt; threshold)</span><br><span class="line">                            &#123;</span><br><span class="line">                                ok = <span class="literal">false</span>;</span><br><span class="line">                                <span class="keyword">return</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="comment">// 当 ok 为 false 后，后续的循环检测都没有意义的了，</span></span><br><span class="line">                            <span class="comment">// 使用 return 跳出两层循环。</span></span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;();</span><br><span class="line"></span><br><span class="line">            <span class="comment">// 新采样点成功采样</span></span><br><span class="line">            <span class="keyword">if</span> (ok)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">auto</span> new_point_key = list.<span class="built_in">size</span>();</span><br><span class="line">                list.<span class="built_in">push_back</span>(new_point);</span><br><span class="line">                grids[row][col] = new_point_key;</span><br><span class="line">                active_list.<span class="built_in">push_back</span>(new_point_key);</span><br><span class="line">                found = <span class="literal">true</span>;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (!found)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">auto</span> iter = std::<span class="built_in">find</span>(active_list.<span class="built_in">begin</span>(), active_list.<span class="built_in">end</span>(), key);</span><br><span class="line">            <span class="keyword">if</span> (iter != active_list.<span class="built_in">end</span>())</span><br><span class="line">            &#123;</span><br><span class="line">                active_list.<span class="built_in">erase</span>(iter);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> list;</span><br><span class="line">&#125;</span><br><span class="line">&#125; <span class="comment">// namespace Random</span></span><br></pre></td></tr></table></figure>
+<p>代码量不少，上方的 Vec2 其实不是必要的，可以替换成只有两个元素的 vector<int> 或者是简单的结构体替代，算法本体中的一些向量运算也可以直接写表达式，不需要调用函数，代码会少一点点。多写个 Vec2 class 单纯就是个人喜好。</p>
+<p>下面写个 mian 函数测试下执行效果。</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">auto</span> result = Random::<span class="built_in">FastPoissonDiscSampling</span>(&#123;<span class="number">100</span>, <span class="number">100</span>&#125;, <span class="number">6</span>);</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">auto</span> p : result)</span><br><span class="line">    &#123;</span><br><span class="line">        std::cout &lt;&lt; <span class="string">&quot;(&quot;</span> &lt;&lt; p.x &lt;&lt; <span class="string">&quot;,&quot;</span> &lt;&lt; p.y &lt;&lt; <span class="string">&quot;)&quot;</span> &lt;&lt; std::endl;</span><br><span class="line">    &#125;</span><br><span class="line">    std::cout &lt;&lt; std::endl;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>执行结果</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">(<span class="number">24</span>,<span class="number">97</span>)</span><br><span class="line">(<span class="number">20.5812</span>,<span class="number">88.8276</span>)</span><br><span class="line">(<span class="number">29.733</span>,<span class="number">82.2709</span>)</span><br><span class="line">(<span class="number">13.8322</span>,<span class="number">79.9774</span>)</span><br><span class="line">(<span class="number">12.2875</span>,<span class="number">91.2487</span>)</span><br><span class="line">(<span class="number">16.9858</span>,<span class="number">99.2597</span>)</span><br><span class="line">(<span class="number">8.35998</span>,<span class="number">99.4975</span>)</span><br><span class="line">(<span class="number">29.1551</span>,<span class="number">89.5978</span>)</span><br><span class="line">(<span class="number">33.6267</span>,<span class="number">72.4279</span>)</span><br><span class="line">(<span class="number">22.9181</span>,<span class="number">82.0951</span>)</span><br><span class="line">...</span><br></pre></td></tr></table></figure>
+
+<p>把打印的结果复制到一个数学可视化网站 desmos.com上看看效果。还是很不错的。<br><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAMAAABOo35HAAAABGdBTUEAAK/INwWK6QAAABl0RVh0U29mdHdhcmUAQWRvYmUgSW1hZ2VSZWFkeXHJZTwAAAC9UExURVlZWdPT07KysmRkZIWFhfT09JmZmWZmZm9vb39/fxkZGUxMTDMzM3p6epCQkKamppubm729venp6cjIyN7e3tbW1s/Pz8LCwnx8fLS0tFZWVoiIiI+Pj6GhoeTk5Glpabu7u93d3evr66CgoJSUlKqqqsnJyeDg4Hd3d8PDw+Xl5bi4uNHR0dvb26Ojo6urq+fn51hYWDg4OCgoKHBwcK2traenp0FBQe7u7vHx8U5OTre3t8zMzHV1df///7GrnpQAAAA/dFJOU///////////////////////////////////////////////////////////////////////////////////AI4mfBcAAAUGSURBVHja7NoJb6M4GMZxY0NCD64kve/pMZ2d3Z297+X7f6zFNmBAMUXa6URl/q9UJSWPUPzrizFWRUlNLgEBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYYIEFAVhggQUWWGBBABZYYIEFFlgQgAUWWGCBBRYEYIEFFlhggQUBWGCBBRZYYEEAFlhggQUWWBCABRZYYIEFFgRggQUWWGCBBQFYYIEFFlhgQQAWWGCBBRZYEIAFFlhggQUWBGCBBRZYn6cCIcRXgvX/h9qcIVBqDdbEM8RCxGCB9QqXYRwHYDHBgwXWl8eKZKiESHI3Ba1kWs3fKixcaJUl1YyeBm7Ocq+yLItUiVBGnXxenSHJolIKEcwHq6ikbOX1YGVzQCTN8LPmSLreghUl9sN4Uw7yajMrLC0TZ1ImzqY6FEop0+pIaEN5HaoOxVuwEqFyc4I46uSlzOLqgxlh6UaR9l3VYWl9Fdoxb1Q90KJtu41pwwFW/WHhTtW8i7TafLCqRsk6bsGw63L9qurXRmuIlbT9lDQnlXU+nBFW1Q2qnZbDprWa2tjR90LZFqx1/+Td/HpGWLlrLDvIwTcx6dQ1Vrntbig68cDms3JwbA5Y1azs1ger6sNV/bbIw1jU81MvNAGrl58RVn8ozW+btF08iGFoAlYvP3csfVur1gJBEIA1uBmue5dhZDOyO2epbmgCVi8/I6x0MMHH9pjsTfBhNzQBq5uPZoQlB0uH3DZG4EZqQ26fL3sZq5uf09Ih6qw3i/pm6BZO0qZX7rrUS68Xsbr5ZE4rePMk08pk9aUZugfqppvs6AM1Acvlo/StP+6EbW06z8hJqxbYp2BZPQUnFsLsKuhQdaHqn5ewbF7KXIn0jWO5MqOQ7RaNLPtbNMmmhimj0GUmYLl8Gs0Lq4wyPbTu1l2QKqHSouzs3OlDIslW5SQsnY/NXmFplyNvEuuLV/Tau9BzwiraDUSwXmysztYWWNtL1psXeumgIrDGaqXvBfUuvtqUYI3V2t1wk1e2msFluJJm6zDJXv/fIfjPP7DAAgsssCiwwAILLLDAosACCyywwAKLAgsssMACC6zt9fDz/v75tyOB+98PD2+ORgKffjw4OP1uJPDxl+Xy8v1I4MPF3t7VNyOB4/vF4uzdzrG+39f1kz/w66Guv/yBvw90KX/gZKkr8Qf+2dOV+gNHC12/7RxrabD2/a31bLAO/a11YbAO/K21MFhLf2s9Gqw9f2vdGqzFu11jnVusE2/gxmI9eQOnFuvYG7i0WH7uK4t15w2cWazrXWP9a7H8f/bQYvm/6IPF+sF/pVssf19Ii/WH/0K2WH/uGuvEWC39gSdj9Twy+Rqri5EZx1gt/IE7Y/XoD1wbq9vd3w1PlufnD2OBp+ebm/uxwPHF6emnscDR4vLy41jg7vHq6sNY4Pr27OyYdRaLUrDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssMCiwAILLLDAAosCCyywwAILLAossMACCyywKLDAAgsssL6u+k+AAQCR9eHtLKvLfwAAAABJRU5ErkJggg==" data-original="/images/202105/fpd-sampling-result.png" alt="结果"></p>
+<p>通过调整算法本体中的 max_retry 变量的值，可以调整是要更快的运行速度，还是要能填满所有的区块。max_retry  的值越小，运行速度就越快，但代价就是没法保证每一个区块都被填充随机点。前面提到的论文中说一般设置为 30，基本上就能保证每一个区块都存在随机点。</p>
+<p>(●’◡’●)</p>
+
+      </div>
+      
+    </div>
+    
+  <div id="btn-catalog" class="btn-catalog">
+    <i class="iconfont icon-catalog"></i>
+  </div>
+  <div class="post-catalog hidden" id="catalog">
+    <div class="title">目录</div>
+    <div class="catalog-content">
+      
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%97%E6%B3%95%E6%80%9D%E8%B7%AF"><span class="toc-text">算法思路</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%97%E6%B3%95%E5%AE%9E%E7%8E%B0"><span class="toc-text">算法实现</span></a></li></ol>
+      
+    </div>
+  </div>
+
+  
+<script src="/js/catalog.js"></script>
+
+
+
+
+    
+      <div class="comments-container">
+        
+
+
+
+
+
+
+
+      </div>
+    
+  </div>
+
+
+        
+<div class="footer">
+  <div class="social">
+    <ul>
+      
+        <li>
+          <a title="zjlian" target="_blank" rel="noopener" href="https://github.com/zjlian">
+            <i class="iconfont icon-github"></i>
+          </a>
+        </li>
+      
+        <li>
+          <a title="TIDC" target="_blank" rel="noopener" href="https://github.com/TIDC">
+            <i class="iconfont icon-github"></i>
+          </a>
+        </li>
+      
+    </ul>
+  </div>
+  
+    
+    <div class="footer-more">
+      
+        <a href="https://zjlian.github.io">© 2023 (oﾟvﾟ)ノ ZJLIAN</a>
+        
+    </div>
+  
+    
+    <div class="footer-more">
+      
+        <a target="_blank" rel="noopener" href="https://github.com/zchengsite/hexo-theme-oranges">由 Hexo & Oranges 强力驱动</a>
+        
+    </div>
+  
+</div>
+
+      </div>
+
+      <div class="tools-bar">
+        <div class="back-to-top tools-bar-item hidden">
+  <a href="javascript: void(0)">
+    <i class="iconfont icon-chevronup"></i>
+  </a>
+</div>
+
+
+<script src="/js/backtotop.js"></script>
+
+
+
+        
+  <div class="search-icon tools-bar-item" id="search-icon">
+    <a href="javascript: void(0)">
+      <i class="iconfont icon-search"></i>
+    </a>
+  </div>
+
+  <div class="search-overlay hidden">
+    <div class="search-content" tabindex="0">
+      <div class="search-title">
+        <span class="search-icon-input">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-search"></i>
+          </a>
+        </span>
+        
+          <input type="text" class="search-input" id="search-input" placeholder="搜索...">
+        
+        <span class="search-close-icon" id="search-close-icon">
+          <a href="javascript: void(0)">
+            <i class="iconfont icon-close"></i>
+          </a>
+        </span>
+      </div>
+      <div class="search-result" id="search-result"></div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var inputArea = document.querySelector("#search-input")
+    var searchOverlayArea = document.querySelector(".search-overlay")
+
+    inputArea.onclick = function() {
+      getSearchFile()
+      this.onclick = null
+    }
+
+    inputArea.onkeydown = function() {
+      if(event.keyCode == 13)
+        return false
+    }
+
+    function openOrHideSearchContent() {
+      let isHidden = searchOverlayArea.classList.contains('hidden')
+      if (isHidden) {
+        searchOverlayArea.classList.remove('hidden')
+        document.body.classList.add('hidden')
+        // inputArea.focus()
+      } else {
+        searchOverlayArea.classList.add('hidden')
+        document.body.classList.remove('hidden')
+      }
+    }
+
+    function blurSearchContent(e) {
+      if (e.target === searchOverlayArea) {
+        openOrHideSearchContent()
+      }
+    }
+
+    document.querySelector("#search-icon").addEventListener("click", openOrHideSearchContent, false)
+    document.querySelector("#search-close-icon").addEventListener("click", openOrHideSearchContent, false)
+    searchOverlayArea.addEventListener("click", blurSearchContent, false)
+
+    var searchFunc = function (path, search_id, content_id) {
+      'use strict';
+      var $input = document.getElementById(search_id);
+      var $resultContent = document.getElementById(content_id);
+      $resultContent.innerHTML = "<ul><span class='local-search-empty'>首次搜索，正在载入索引文件，请稍后……<span></ul>";
+      $.ajax({
+        // 0x01. load xml file
+        url: path,
+        dataType: "xml",
+        success: function (xmlResponse) {
+          // 0x02. parse xml file
+          var datas = $("entry", xmlResponse).map(function () {
+            return {
+              title: $("title", this).text(),
+              content: $("content", this).text(),
+              url: $("url", this).text()
+            };
+          }).get();
+          $resultContent.innerHTML = "";
+
+          $input.addEventListener('input', function () {
+            // 0x03. parse query to keywords list
+            var str = '<ul class=\"search-result-list\">';
+            var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+            $resultContent.innerHTML = "";
+            if (this.value.trim().length <= 0) {
+              return;
+            }
+            // 0x04. perform local searching
+            datas.forEach(function (data) {
+              var isMatch = true;
+              var content_index = [];
+              if (!data.title || data.title.trim() === '') {
+                data.title = "Untitled";
+              }
+              var orig_data_title = data.title.trim();
+              var data_title = orig_data_title.toLowerCase();
+              var orig_data_content = data.content.trim().replace(/<[^>]+>/g, "");
+              var data_content = orig_data_content.toLowerCase();
+              var data_url = data.url;
+              var index_title = -1;
+              var index_content = -1;
+              var first_occur = -1;
+              // only match artiles with not empty contents
+              if (data_content !== '') {
+                keywords.forEach(function (keyword, i) {
+                  index_title = data_title.indexOf(keyword);
+                  index_content = data_content.indexOf(keyword);
+
+                  if (index_title < 0 && index_content < 0) {
+                    isMatch = false;
+                  } else {
+                    if (index_content < 0) {
+                      index_content = 0;
+                    }
+                    if (i == 0) {
+                      first_occur = index_content;
+                    }
+                    // content_index.push({index_content:index_content, keyword_len:keyword_len});
+                  }
+                });
+              } else {
+                isMatch = false;
+              }
+              // 0x05. show search results
+              if (isMatch) {
+                str += "<li><a href='" + data_url + "' class='search-result-title'>" + orig_data_title + "</a>";
+                var content = orig_data_content;
+                if (first_occur >= 0) {
+                  // cut out 100 characters
+                  var start = first_occur - 20;
+                  var end = first_occur + 80;
+
+                  if (start < 0) {
+                    start = 0;
+                  }
+
+                  if (start == 0) {
+                    end = 100;
+                  }
+
+                  if (end > content.length) {
+                    end = content.length;
+                  }
+
+                  var match_content = content.substr(start, end);
+
+                  // highlight all keywords
+                  keywords.forEach(function (keyword) {
+                    var regS = new RegExp(keyword, "gi");
+                    match_content = match_content.replace(regS, "<span class=\"search-keyword\">" + keyword + "</span>");
+                  });
+
+                  str += "<p class=\"search-result-abstract\">" + match_content + "...</p>"
+                }
+                str += "</li>";
+              }
+            });
+            str += "</ul>";
+            if (str.indexOf('<li>') === -1) {
+              return $resultContent.innerHTML = "<ul><span class='local-search-empty'>没有找到内容，请尝试更换检索词。<span></ul>";
+            }
+            $resultContent.innerHTML = str;
+          });
+        },
+        error: function(xhr, status, error) {
+          $resultContent.innerHTML = ""
+          if (xhr.status === 404) {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>未找到search.xml文件，具体请参考：<a href='https://github.com/zchengsite/hexo-theme-oranges#configuration' target='_black'>configuration</a><span></ul>";
+          } else {
+            $resultContent.innerHTML = "<ul><span class='local-search-empty'>请求失败，尝试重新刷新页面或稍后重试。<span></ul>";
+          }
+        }
+      });
+      $(document).on('click', '#search-close-icon', function() {
+        $('#search-input').val('');
+        $('#search-result').html('');
+      });
+    }
+
+    var getSearchFile = function() {
+        var path = "/search.xml";
+        searchFunc(path, 'search-input', 'search-result');
+    }
+  </script>
+
+
+
+
+        
+  <div class="tools-bar-item theme-icon" id="switch-color-scheme">
+    <a href="javascript: void(0)">
+      <i id="theme-icon" class="iconfont icon-moon"></i>
+    </a>
+  </div>
+
+  
+<script src="/js/colorscheme.js"></script>
+
+
+
+
+
+        
+
+      </div>
+    </div>
+  <script>
+            window.imageLazyLoadSetting = {
+                isSPA: false,
+                preloadRatio: 3,
+                processImages: null,
+            };
+        </script><script>window.addEventListener("load",function(){var t=/\.(gif|jpg|jpeg|tiff|png)$/i,r=/^data:image\/[a-z]+;base64,/;Array.prototype.slice.call(document.querySelectorAll("img[data-original]")).forEach(function(a){var e=a.parentNode;"A"===e.tagName&&(e.href.match(t)||e.href.match(r))&&(e.href=a.dataset.original)})});</script><script>!function(n){n.imageLazyLoadSetting.processImages=o;var e=n.imageLazyLoadSetting.isSPA,i=n.imageLazyLoadSetting.preloadRatio||1,r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]"));function o(){e&&(r=Array.prototype.slice.call(document.querySelectorAll("img[data-original]")));for(var t,a=0;a<r.length;a++)0<=(t=(t=r[a]).getBoundingClientRect()).bottom&&0<=t.left&&t.top<=(n.innerHeight*i||document.documentElement.clientHeight*i)&&function(){var t,e,n,i,o=r[a];t=o,e=function(){r=r.filter(function(t){return o!==t})},n=new Image,i=t.getAttribute("data-original"),n.onload=function(){t.src=i,e&&e()},t.src!==i&&(n.src=i)}()}o(),n.addEventListener("scroll",function(){var t,e;t=o,e=n,clearTimeout(t.tId),t.tId=setTimeout(function(){t.call(e)},500)})}(this);</script></body>
+</html>
